@@ -1,0 +1,11 @@
+---
+container: my_project_36
+container_group: user
+container_username: user
+group_id: 1000
+homedir: /home/user
+image: ubuntu:14.04
+ports: []
+project: my_project
+project_volume: /home/user/my_project
+user_id: 1000

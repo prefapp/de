@@ -1,31 +1,44 @@
 #!/usr/bin/env perl
-use YAML qw(LoadFile);
+#
+#ver http://stackoverflow.com/a/26547845
+#
+use YAML qw(LoadFile DumpFile);
 use Getopt::Std;
+use Cwd;
 use Data::Dumper;
 use strict;
 
+my $REAL_GROUP_ID = (split(' ', $())[0];
+
 my $CONFIG = {
+    project => 'my_project',
     container => undef,
     image => undef,
-    project_volume => '/home/my_project',
+    project_volume => '/home/'.getpwuid($<).'/my_project',
     ports => [],
     action => 'exec',
+    container_username => scalar(getpwuid($<)),
+    container_group => scalar(getgrgid($REAL_GROUP_ID)),
+    homedir => '/home/'.getpwuid($<),
+    user_id => $<,
+    group_id => $REAL_GROUP_ID,
 };
+
 
 my $CONFIG_FILE = '.de';
 
-&leer_config;
+&read_config;
 &cargar_parametros_linea_comandos;
 
-#
-# TODO
-#
-if($CONFIG->{action} eq 'exec'){
+if($CONFIG->{action} eq 'start'){
+    $CONFIG->{container} ||= $CONFIG->{project}.'_'.int(rand(100));
+    &create_container;
+    &save_config;
+}
+elsif($CONFIG->{action} eq 'exec'){
+
     my $sh_cmd = &build_comand(@ARGV);
     &execute_command($sh_cmd);
-}
-elsif($CONFIG->{action} eq 'create_container'){
-    &create_container
 }
 
 
@@ -36,7 +49,16 @@ sub build_comand {
 
     die("Falta comando a ejecutar en container") unless(@args);
 
-    'cd '.$CONFIG->{project_volume}.' && '.join (' ', @args)
+    if($CONFIG->{root}){
+
+        join (' ', @args);
+
+    }
+    else{
+
+        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
+        ' -- bash -c "cd '.$CONFIG->{project_volume}.' && '.join (' ', @args).'"'
+    }
 }
 
 sub execute_command {
@@ -44,11 +66,11 @@ sub execute_command {
 
     die("Falta container") unless($CONFIG->{container});
     
-    my $docker_command = "docker exec -t ".$CONFIG->{container}." bash -c '$sh_cmd'";
+    my $docker_command = "docker exec -ti ".$CONFIG->{container}." $sh_cmd";
     
-    print "Executing $docker_command ...\n";
+    #print "Executing $docker_command ...\n";
 
-    exec($docker_command);
+    system($docker_command);
 
 }
 
@@ -56,18 +78,35 @@ sub create_container {
     die("Falta imagen") unless($CONFIG->{image});
 
     my @command  = qw(docker run);
-    push @command, ("-v", ".:$CONFIG->{project_volume}");
+    push @command, ('--name', $CONFIG->{container});
+    push @command, ("-v", getcwd().':'.$CONFIG->{project_volume});
+    push @command, '-d';
 
     foreach my $port (@{$CONFIG->{ports}}){ 
         push @command, ("-p", $port);
     }
-    push @command, ($CONFIG->{image}, "/bin/bash");
 
-    exec(@command);
+    # arrancamos o container esperando indefinidamente
+    push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');
+
+    # creamos container
+    system(@command);
+
+    # creamos usuario e homedir dentro de container
+    my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -ci '" . &create_user_cmd . "'";
+    system($new_cmd);
+
+}
+
+sub create_user_cmd{
+        "groupadd -f --gid $CONFIG->{group_id} $CONFIG->{container_group} && \ 
+        useradd -u $CONFIG->{user_id} -g $CONFIG->{container_group} $CONFIG->{container_username} && \ 
+        mkdir --parent $CONFIG->{homedir} && \ 
+        chown -R $CONFIG->{container_username}:$CONFIG->{container_group} $CONFIG->{homedir}"
 }
 
 
-sub leer_config {
+sub read_config {
     #open my $f, $CONFIG || die ("Error abriendo $CONFIG");
 
     return unless -e $CONFIG_FILE;
@@ -81,18 +120,26 @@ sub leer_config {
     }
 }
 
+sub save_config {
+
+    delete($CONFIG->{action});
+    DumpFile($CONFIG_FILE, $CONFIG)
+}
+
 
 sub cargar_parametros_linea_comandos{
     my $conf = $CONFIG;
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:p:a:", $opts);
+    getopts("i:c:p:v:a:R", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
-    $conf->{project_volume} = $opts->{p} if($opts->{p});
+    $conf->{project_volume} = $opts->{v} if($opts->{v});
+    $conf->{project} = $opts->{p} if($opts->{p});
     $conf->{action} = $opts->{a} if($opts->{a});
+    $conf->{root} = 1 if($opts->{R});
 
 }
 

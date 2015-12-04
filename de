@@ -67,32 +67,13 @@ elsif($CONFIG->{action} eq 'exec'){
     my $sh_cmd = &build_comand(@ARGV);
     &execute_command($sh_cmd);
 }
+elsif($CONFIG->{action} =~  /^delete|drop|rm|remove$/i){
+    &delete_container();
+}
 
 
 
 #########################################################################
-sub build_comand {
-    my @args = @_;
-
-    die("Falta comando a ejecutar en container") unless(@args);
-
-    if($CONFIG->{root}){
-
-        join (' ', @args);
-
-    }
-    else{
-        my $current_path = File::Spec->join(
-        
-            $CONFIG->{project_volume}, 
-        
-            &current_path_relative_to_project_root()
-        );
-
-        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
-        ' -- bash -c "cd '.$current_path.' && '.join (' ', @args).'"'
-    }
-}
 
 sub current_path_relative_to_project_root {
     my $current_abs_path = File::Spec->rel2abs(File::Spec->curdir());
@@ -137,6 +118,29 @@ sub abs_root_path {
 
 }
 
+sub build_comand {
+    my @args = @_;
+
+    die("Falta comando a ejecutar en container") unless(@args);
+
+    if($CONFIG->{root}){
+
+        join (' ', @args);
+
+    }
+    else{
+        my $current_path = File::Spec->join(
+        
+            $CONFIG->{project_volume}, 
+        
+            &current_path_relative_to_project_root()
+        );
+
+        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
+        ' -- bash -c "cd '.$current_path.' && '.join (' ', @args).'"'
+    }
+}
+
 sub execute_command {
     my ($sh_cmd) = @_;
 
@@ -172,6 +176,12 @@ sub create_container {
     my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -ci '" . &create_user_cmd . "'";
     system($new_cmd);
 
+}
+
+sub delete_container{
+    die("Falta container") unless ($CONFIG->{container});
+    print "Borrando container ...";
+    system("docker rm -f -v $CONFIG->{container}");
 }
 
 sub create_user_cmd{

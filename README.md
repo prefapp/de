@@ -94,7 +94,7 @@ The config file
 
 .de is a yaml config file, generated in the root of your project. 
 
-Let 'de' create it for your at **de start**
+Let *de* create it for your with **de start**
 
 ```yaml
 project: project name

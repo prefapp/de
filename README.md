@@ -7,9 +7,7 @@ Requirements
 ------------
 - docker
 - perl
-- YAML Perl module
-
-```sudo apt-get install libyaml-perl```
+- YAML Perl module. For example: ```sudo apt-get install libyaml-perl```
 
 
 To get started

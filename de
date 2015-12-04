@@ -71,29 +71,6 @@ elsif($CONFIG->{action} eq 'exec'){
 
 
 #########################################################################
-sub build_comand {
-    my @args = @_;
-
-    die("Falta comando a ejecutar en container") unless(@args);
-
-    if($CONFIG->{root}){
-
-        join (' ', @args);
-
-    }
-    else{
-        my $current_path = File::Spec->join(
-        
-            $CONFIG->{project_volume}, 
-        
-            &current_path_relative_to_project_root()
-        );
-
-        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
-        ' -- bash -c "cd '.$current_path.' && '.join (' ', @args).'"'
-    }
-}
-
 sub current_path_relative_to_project_root {
     my $current_abs_path = File::Spec->rel2abs(File::Spec->curdir());
 
@@ -137,14 +114,39 @@ sub abs_root_path {
 
 }
 
+sub build_comand {
+    my @args = @_;
+
+    die("Falta comando a ejecutar en container") unless(@args);
+
+    if($CONFIG->{root}){
+
+        join (' ', @args);
+
+    }
+    else{
+        my $current_path = File::Spec->join(
+        
+            $CONFIG->{project_volume}, 
+        
+            &current_path_relative_to_project_root()
+        );
+
+        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
+        ' -- bash -c \\"cd '.$current_path.' \'&&\' '.join (' ', @args).'\\"'
+    }
+}
+
+
 sub execute_command {
     my ($sh_cmd) = @_;
 
     die("Falta container") unless($CONFIG->{container});
     
-    my $docker_command = "docker exec -ti ".$CONFIG->{container}." $sh_cmd";
+    #my $docker_command = "docker exec -ti ".$CONFIG->{container}." $sh_cmd";
+    my $docker_command = "echo \"$sh_cmd\" | docker start -ai $CONFIG->{container}";
     
-    #print "Executing $docker_command ...\n";
+    print "Executing $docker_command ...\n";
 
     system($docker_command);
 
@@ -156,29 +158,39 @@ sub create_container {
     my @command  = qw(docker run);
     push @command, ('--name', $CONFIG->{container});
     push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
-    push @command, '-d';
+    push @command, '-ti';
 
     foreach my $port (@{$CONFIG->{ports}}){ 
         push @command, ("-p", $port);
     }
 
     # arrancamos o container esperando indefinidamente
-    push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');
+    push @command, ($CONFIG->{image}, 'bash');#,'-c', 'while true; do sleep 10000; done');
 
     # creamos container
-    system(@command);
+    if(my $pid = fork()){
+        system(@command);
+    }
+    else{
+        sleep(1);
+        system("docker stop $CONFIG->{container}");
+    }
 
     # creamos usuario e homedir dentro de container
-    my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -ci '" . &create_user_cmd . "'";
+    #my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -ci '" . &create_user_cmd . "'";
+    my $new_cmd = &create_user_cmd." | docker start -ai $CONFIG->{container}";
+
+    print $new_cmd;
     system($new_cmd);
 
 }
 
 sub create_user_cmd{
-        "groupadd -f --gid $CONFIG->{group_id} $CONFIG->{container_group} && \ 
-        useradd -u $CONFIG->{user_id} -g $CONFIG->{container_group} $CONFIG->{container_username} && \ 
-        mkdir --parent $CONFIG->{homedir} && \ 
-        chown -R $CONFIG->{container_username}:$CONFIG->{container_group} $CONFIG->{homedir}"
+    "echo \" \  
+        groupadd -f --gid $CONFIG->{group_id} $CONFIG->{container_group} '&&' \ 
+        useradd -u $CONFIG->{user_id} -g $CONFIG->{container_group} $CONFIG->{container_username} '&&' \ 
+        mkdir --parent $CONFIG->{homedir} '&&' \ 
+        chown -R $CONFIG->{container_username}:$CONFIG->{container_group} $CONFIG->{homedir}\" "
 }
 
 

@@ -2,33 +2,60 @@
 #
 #ver http://stackoverflow.com/a/26547845
 #
+use strict;
 use YAML qw(LoadFile DumpFile);
 use Getopt::Std;
 use Cwd;
 use Data::Dumper;
-use strict;
-
-my $REAL_GROUP_ID = (split(' ', $())[0];
-
-my $CONFIG = {
-    project => 'my_project',
-    container => undef,
-    image => undef,
-    project_volume => '/home/'.getpwuid($<).'/my_project',
-    ports => [],
-    action => 'exec',
-    container_username => scalar(getpwuid($<)),
-    container_group => scalar(getgrgid($REAL_GROUP_ID)),
-    homedir => '/home/'.getpwuid($<),
-    user_id => $<,
-    group_id => $REAL_GROUP_ID,
-};
+use File::Spec;
+use File::Basename;
 
 
 my $CONFIG_FILE = '.de';
 
+my @current_path = File::Spec->splitdir(
+
+    File::Spec->rel2abs(
+
+        File::Spec->curdir()
+    )
+);
+
+
+my $DEFAULT_PROJECT_NAME = pop @current_path;
+
+my $REAL_GROUP_ID = (split(' ', $())[0];
+
+my $CONFIG = {
+    project => $DEFAULT_PROJECT_NAME,
+    container => undef,
+    image => undef,
+    
+    project_volume => File::Spec->join(
+        File::Spec->rootdir,
+        'home',
+        scalar(getpwuid($<)),
+        $DEFAULT_PROJECT_NAME
+    ),
+    ports => [],
+    action => 'exec',
+    container_username => scalar(getpwuid($<)),
+    container_group => scalar(getgrgid($REAL_GROUP_ID)),
+    
+    homedir => File::Spec->join(
+    
+        File::Spec->rootdir(),
+        'home',
+        scalar(getpwuid($<))
+    ),
+    
+    user_id => $<,
+    
+    group_id => $REAL_GROUP_ID,
+};
+
 &read_config;
-&cargar_parametros_linea_comandos;
+&load_command_line_args;
 
 if($CONFIG->{action} eq 'start'){
     $CONFIG->{container} ||= $CONFIG->{project}.'_'.int(rand(100));
@@ -55,10 +82,59 @@ sub build_comand {
 
     }
     else{
+        my $current_path = File::Spec->join(
+        
+            $CONFIG->{project_volume}, 
+        
+            &current_path_relative_to_project_root()
+        );
 
         'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
-        ' -- bash -c "cd '.$CONFIG->{project_volume}.' && '.join (' ', @args).'"'
+        ' -- bash -c "cd '.$current_path.' && '.join (' ', @args).'"'
     }
+}
+
+sub current_path_relative_to_project_root {
+    my $current_abs_path = File::Spec->rel2abs(File::Spec->curdir());
+
+    my @current_abs_path = File::Spec->splitdir($current_abs_path);
+
+    my $rel_path = File::Spec->curdir();
+
+    my @slices = ();
+
+    while(@current_abs_path > 0){
+
+        if(-e File::Spec->join($rel_path, $CONFIG_FILE)){
+
+            return File::Spec->join(@slices, File::Spec->curdir());
+        }
+
+        unshift @slices, pop(@current_abs_path);
+
+        $rel_path = File::Spec->join(File::Spec->updir(), $rel_path);
+    }
+
+}
+
+sub abs_root_path {
+
+    my $current_abs_path = File::Spec->rel2abs(File::Spec->curdir());
+    my @current_abs_path = File::Spec->splitdir($current_abs_path);
+    my $rel_path = File::Spec->curdir();
+
+    while(@current_abs_path > 0 ){
+        if(-e File::Spec->join($rel_path, $CONFIG_FILE)){
+
+            return File::Spec->join(@current_abs_path);
+        }
+
+        pop(@current_abs_path);
+
+        $rel_path = File::Spec->join(File::Spec->updir(), $rel_path);
+
+    }
+
 }
 
 sub execute_command {
@@ -79,7 +155,7 @@ sub create_container {
 
     my @command  = qw(docker run);
     push @command, ('--name', $CONFIG->{container});
-    push @command, ("-v", getcwd().':'.$CONFIG->{project_volume});
+    push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
     push @command, '-d';
 
     foreach my $port (@{$CONFIG->{ports}}){ 
@@ -107,11 +183,15 @@ sub create_user_cmd{
 
 
 sub read_config {
-    #open my $f, $CONFIG || die ("Error abriendo $CONFIG");
+ 
+    my $config_path = File::Spec->join(
+        &abs_root_path,
+        $CONFIG_FILE
+    );
 
-    return unless -e $CONFIG_FILE;
+    return unless -e $config_path;
 
-    my $data = LoadFile($CONFIG_FILE);
+    my $data = LoadFile($config_path);
 
     while(my ($k, $v) = each(%$data)){
         if(exists($CONFIG->{$k})){
@@ -127,7 +207,7 @@ sub save_config {
 }
 
 
-sub cargar_parametros_linea_comandos{
+sub load_command_line_args{
     my $conf = $CONFIG;
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos

@@ -3,24 +3,45 @@ de (docker execute)
 
 **de** runs commands in a docker container associated to your code project.
 
+Requirements
+------------
+- perl
+- YAML Perl module
+```apt-get install libyaml-perl```
 
-To get started:
+
+To get started
+---------------
+
+- Install **de**:
+```
+sudo curl https://raw.githubusercontent.com/prefapp/de/master/de -o /usr/local/sbin/de && sudo chmod 755 /usr/local/sbin/de
+```
 
 - Create a container associated to your project
-de -a start -i ruby:2.2 -p 80 
 
-- Execute commands inside your container
+In a ruby project, for example , from de root of your project run:
+
+```
+de -a start -i ruby:2.2 -p 80 
+```
+
+- Have fun!
+
+For example run the test inside your container __from outside__
+
 ```
 de rake test
+...
 
-....
 ```
 
 The config file
 -----------------
 
-.de is a yaml config file, in the root of your project. 
-You can create it or let 'de' create it for your at **start**
+.de is a yaml config file, generated in the root of your project. 
+
+Let 'de' create it for your at **de start**
 
 ```yaml
 project: project name

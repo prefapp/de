@@ -145,7 +145,7 @@ sub build_comand {
 sub execute_command {
     my ($sh_cmd) = @_;
 
-    die("Falta container") unless($CONFIG->{container});
+    die("container not specified") unless($CONFIG->{container});
     
     my $docker_command = "docker exec -ti $CONFIG->{container} $sh_cmd";
     
@@ -156,7 +156,7 @@ sub execute_command {
 }
 
 sub create_container {
-    die("Falta imagen") unless($CONFIG->{image});
+    die("image not specified") unless($CONFIG->{image});
 
     my @command  = qw(docker run);
     push @command, ('--name', $CONFIG->{container});
@@ -171,6 +171,7 @@ sub create_container {
     push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');
 
     # creamos container
+    print "Creating container $CONFIG->{container}...";
     system(@command);
 
     # creamos usuario e homedir dentro de container
@@ -180,8 +181,8 @@ sub create_container {
 }
 
 sub delete_container{
-    die("Falta container") unless ($CONFIG->{container});
-    print "Borrando container ...";
+    die("container not specified") unless ($CONFIG->{container});
+    print "Removing container ...";
     system("docker rm -f -v $CONFIG->{container}");
 }
 

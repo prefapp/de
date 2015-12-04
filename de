@@ -23,7 +23,6 @@ my @current_path = File::Spec->splitdir(
 
 
 my $DEFAULT_PROJECT_NAME = pop @current_path;
-
 my $REAL_GROUP_ID = (split(' ', $())[0];
 
 my $CONFIG = {
@@ -53,7 +52,6 @@ my $CONFIG = {
     
     group_id => $REAL_GROUP_ID,
 };
-
 &read_config;
 &load_command_line_args;
 
@@ -123,21 +121,24 @@ sub build_comand {
 
     die("Falta comando a ejecutar en container") unless(@args);
 
-    if($CONFIG->{root}){
+    my $cmd = join (' ', @args);
 
-        join (' ', @args);
+    my $current_path = File::Spec->join(
+    
+        $CONFIG->{project_volume}, 
+    
+        &current_path_relative_to_project_root()
+    );
+
+
+    if($CONFIG->{root}){
+    
+        "bash -c 'cd $current_path && $cmd'";
 
     }
     else{
-        my $current_path = File::Spec->join(
-        
-            $CONFIG->{project_volume}, 
-        
-            &current_path_relative_to_project_root()
-        );
 
-        'sudo -u '.$CONFIG->{container_username}.' HOME='.$CONFIG->{homedir}.
-        ' -- bash -c "cd '.$current_path.' && '.join (' ', @args).'"'
+        "su -c 'cd $current_path && $cmd' $CONFIG->{container_username}"
     }
 }
 
@@ -146,7 +147,7 @@ sub execute_command {
 
     die("Falta container") unless($CONFIG->{container});
     
-    my $docker_command = "docker exec -ti ".$CONFIG->{container}." $sh_cmd";
+    my $docker_command = "docker exec -ti $CONFIG->{container} $sh_cmd";
     
     #print "Executing $docker_command ...\n";
 
@@ -173,7 +174,7 @@ sub create_container {
     system(@command);
 
     # creamos usuario e homedir dentro de container
-    my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -ci '" . &create_user_cmd . "'";
+    my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -c '" . &create_user_cmd . "'";
     system($new_cmd);
 
 }

@@ -5,9 +5,11 @@ de (docker execute)
 
 Requirements
 ------------
+- docker
 - perl
 - YAML Perl module
-```apt-get install libyaml-perl```
+
+```sudo apt-get install libyaml-perl```
 
 
 To get started

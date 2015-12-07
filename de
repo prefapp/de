@@ -168,7 +168,8 @@ sub create_container {
     }
 
     # arrancamos o container esperando indefinidamente
-    push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');
+    #push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');
+    push @command, ($CONFIG->{image}, 'tail','-f', '/dev/null');
 
     # creamos container
     print "Creating container $CONFIG->{container}...";

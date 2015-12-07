@@ -51,6 +51,8 @@ my $CONFIG = {
     user_id => $<,
     
     group_id => $REAL_GROUP_ID,
+
+    env => {},
 };
 &read_config;
 &load_command_line_args;
@@ -138,8 +140,19 @@ sub build_comand {
     }
     else{
 
-        "su -c 'cd $current_path && $cmd' $CONFIG->{container_username}"
+        "su -c 'cd $current_path && ".&build_env."$cmd' $CONFIG->{container_username}";
     }
+}
+
+sub build_env {
+
+    my $env = '';
+
+    foreach my $env_var (@{$CONFIG->{env}}){
+        $env .= "$env_var "
+    }
+    
+    $env;
 }
 
 sub execute_command {

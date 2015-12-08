@@ -52,7 +52,7 @@ my $CONFIG = {
     
     group_id => $REAL_GROUP_ID,
 
-    env => {},
+    env => [],
 };
 &read_config;
 &load_command_line_args;

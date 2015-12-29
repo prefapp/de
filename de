@@ -159,6 +159,8 @@ sub execute_command {
     my ($sh_cmd) = @_;
 
     die("container not specified") unless($CONFIG->{container});
+
+    system("docker start $CONFIG->{container} > /dev/null");
     
     my $docker_command = "docker exec -ti $CONFIG->{container} $sh_cmd";
     

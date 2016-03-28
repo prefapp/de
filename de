@@ -39,6 +39,7 @@ my $CONFIG = {
     ),
     ports => [],
     volumes => [],
+    links => [],
     action => 'exec',
     container_username => scalar(getpwuid($<)),
     container_group => scalar(getgrgid($REAL_GROUP_ID)),
@@ -180,11 +181,12 @@ sub create_container {
     system("docker pull ".$CONFIG->{image});
     
 
-    # creamos container
+    # creamos container con un volumen asociado al proyecto
     my @command  = qw(docker run);
     push @command, ('--name', $CONFIG->{container});
     push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
     
+    # volumes extra
     foreach my $vol (@{$CONFIG->{volumes}}){
         
         my @part = split ':', $vol;
@@ -193,15 +195,23 @@ sub create_container {
         
     }
 
+    # env vars definied en config
     foreach my $e (split(' ', &build_env)){
         push @command, ('-e', $e);
     }
-    
-    push @command, '-d';
 
+    # links
+    foreach my $link (@{$CONFIG->{links}}){
+        push @command, ('--link', $link);
+    }
+    
+    # ports 
     foreach my $port (@{$CONFIG->{ports}}){ 
         push @command, ("-p", $port);
     }
+
+    # detached
+    push @command, '-d';
 
     # arrancamos o container esperando indefinidamente
     #push @command, ($CONFIG->{image}, 'bash','-c', 'while true; do sleep 10000; done');

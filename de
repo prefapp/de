@@ -10,6 +10,7 @@ use Data::Dumper;
 use File::Spec;
 use File::Basename;
 
+our $VERSION=0.5.1;
 
 my $CONFIG_FILE = '.de';
 
@@ -37,6 +38,7 @@ my $CONFIG = {
         $DEFAULT_PROJECT_NAME
     ),
     ports => [],
+    volumes => [],
     action => 'exec',
     container_username => scalar(getpwuid($<)),
     container_group => scalar(getgrgid($REAL_GROUP_ID)),
@@ -173,9 +175,28 @@ sub execute_command {
 sub create_container {
     die("image not specified") unless($CONFIG->{image});
 
+    # actualizamos imagen
+    print "Actualizando imagen local ".$CONFIG->{image}."\n";
+    system("docker pull ".$CONFIG->{image});
+    
+
+    # creamos container
     my @command  = qw(docker run);
     push @command, ('--name', $CONFIG->{container});
     push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
+    
+    foreach my $vol (@{$CONFIG->{volumes}}){
+        
+        my @part = split ':', $vol;
+
+        push @command, ('-v', File::Spec->rel2abs($part[0]).':'.$part[1]);
+        
+    }
+
+    foreach my $e (split(' ', &build_env)){
+        push @command, ('-e', $e);
+    }
+    
     push @command, '-d';
 
     foreach my $port (@{$CONFIG->{ports}}){ 
@@ -188,6 +209,7 @@ sub create_container {
 
     # creamos container
     print "Creating container $CONFIG->{container}...";
+    #print join ' ', @command;
     system(@command);
 
     # creamos usuario e homedir dentro de container

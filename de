@@ -45,8 +45,8 @@ my $CONFIG = {
     volumes => [],
     links => [],
     action => 'exec',
-    container_username => scalar(getpwuid($<)),
-    container_group => scalar(getgrgid($REAL_GROUP_ID)),
+    #container_username => scalar(getpwuid($<)),
+    #container_group => scalar(getgrgid($REAL_GROUP_ID)),
     
     homedir => File::Spec->join(
     
@@ -64,12 +64,12 @@ my $CONFIG = {
 &read_config;
 &load_command_line_args;
 
-if($CONFIG->{action} eq 'start'){
-    $CONFIG->{container} ||= $CONFIG->{project}.'_'.int(rand(100));
-    &create_container;
-    &save_config;
-}
-elsif($CONFIG->{action} eq 'exec'){
+#if($CONFIG->{action} eq 'start'){
+#    $CONFIG->{container} ||= $CONFIG->{project}.'_'.int(rand(100));
+#    &create_container;
+#    &save_config;
+#}
+if($CONFIG->{action} eq 'exec'){
 
     my $sh_cmd = &build_command(@ARGV);
     &execute_command(@$sh_cmd);
@@ -216,10 +216,15 @@ sub execute_command{
        push @command, "--rm";
     }
 
+    # 
+    # seteamos el usuario dentro del container
+    # equivalente al que lo esta ejecutando fuera
+    #
     unless($CONFIG->{root}){
         push @command, ('-e', 'USER='.$ENV{USER});
         push @command, ('-e', 'USERID='.$<);
-        push @command, ('-u', $<);
+
+        push @command, ('-u', "$<:$REAL_GROUP_ID");
     }
 
     push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
@@ -233,6 +238,9 @@ sub execute_command{
 
         my $local_path;
 
+
+        # miramos si es ruta relativa o absoluta
+        # si es relativa, hai que calcular la absoluta
         my $root = File::Spec->rootdir();
 
         if($part[0] =~ qr!^$root!x ){
@@ -293,73 +301,10 @@ sub commit_container{
 }
 
 
-sub create_container {
-    die("image not specified") unless($CONFIG->{image});
-
-    # actualizamos imagen
-    print "Actualizando imagen local ".$CONFIG->{image}."\n";
-    run_cmd("docker pull ".$CONFIG->{image});
-    
-
-    # creamos container con un volumen asociado al proyecto
-    my @command  = qw(docker run);
-    push @command, ('--name', $CONFIG->{container});
-    push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
-    push @command, ('-w', $CONFIG->{project_volume});
-    
-    # volumes extra
-    foreach my $vol (@{$CONFIG->{volumes}}){
-        
-        my @part = split ':', $vol;
-
-        push @command, ('-v', File::Spec->rel2abs($part[0]).':'.$part[1]);
-        
-    }
-
-    # env vars definied en config
-    foreach my $e (split(' ', &build_env)){
-        push @command, ('-e', $e);
-    }
-
-    # links
-    foreach my $link (@{$CONFIG->{links}}){
-        push @command, ('--link', $link);
-    }
-    
-    # ports 
-    foreach my $port (@{$CONFIG->{ports}}){ 
-        push @command, ("-p", $port);
-    }
-
-    # detached
-    push @command, '-d';
-
-    # arrancamos o container esperando indefinidamente
-    push @command, ($CONFIG->{image}, 'tail','-f', '/dev/null');
-
-    # creamos container
-    print "Creating container $CONFIG->{container}...";
-    #print join ' ', @command;
-    run_cmd(@command);
-
-    # creamos usuario e homedir dentro de container
-    my $new_cmd = "docker exec $CONFIG->{container} /bin/bash -c '" . &create_user_cmd . "'";
-    run_cmd($new_cmd);
-
-}
-
 sub delete_image{
     die("image not specified") unless ($CONFIG->{image});
     print "Removing image ".$CONFIG->{image}." ...";
     run_cmd("docker rmi $CONFIG->{image}");
-}
-
-sub create_user_cmd{
-    "groupadd -f --gid $CONFIG->{group_id} $CONFIG->{container_group} && \ 
-useradd -u $CONFIG->{user_id} -g $CONFIG->{container_group} $CONFIG->{container_username} && \ 
-mkdir --parent $CONFIG->{homedir} && \ 
-chown -R $CONFIG->{container_username}:$CONFIG->{container_group} $CONFIG->{homedir}"
-
 }
 
 
@@ -409,7 +354,7 @@ sub load_command_line_args{
 sub run_cmd{
     my ($cmd,@rest) = @_;
 
-    print join(' ', $cmd, @rest, "\n");
+    #print join(' ', $cmd, @rest, "\n");
 
     system(&split_command($cmd), @rest);
 }

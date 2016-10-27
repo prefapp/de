@@ -206,8 +206,15 @@ sub execute_command{
     die("image not specified") unless($CONFIG->{image});
 
     my $container_name = &generate_container_name();
-    
-    my @command = qw(docker run -ti);
+
+    # para evitar retornos de carro (\r) na saida do docker run
+    # evitamos activa a tty a menos que se indique explicitamente     
+    #(https://github.com/docker/docker/issues/8513)
+    my @command = qw(docker run -i);
+
+    if($CONFIG->{tty}){
+        push @command, '-t'
+    }
     
     if($CONFIG->{commit}){
         push @command, ('--name', $container_name);
@@ -339,7 +346,7 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:p:v:a:RCSt:", $opts);
+    getopts("i:c:p:v:a:RCST:t", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
@@ -349,7 +356,8 @@ sub load_command_line_args{
     $conf->{root} = 1 if($opts->{R});
 
     $conf->{commit} =  $opts->{C} || $opts->{S};
-    $conf->{tag} = $opts->{t} if($opts->{t});
+    $conf->{tag} = $opts->{T} if($opts->{T});
+    $conf->{tty} = $opts->{t} if($opts->{t});
 
 }
 

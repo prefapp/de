@@ -274,7 +274,8 @@ sub execute_command{
 
     run_cmd(@command);
 
-    if(my $tag = $CONFIG->{commit}){
+    if($CONFIG->{commit}){
+        my $tag = $CONFIG->{tag} || 'latest';
         commit_container($container_name, $CONFIG->{image}.":$tag")
     }
 }
@@ -338,7 +339,7 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:p:v:a:RC:S:", $opts);
+    getopts("i:c:p:v:a:RCSt:", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
@@ -348,6 +349,7 @@ sub load_command_line_args{
     $conf->{root} = 1 if($opts->{R});
 
     $conf->{commit} =  $opts->{C} || $opts->{S};
+    $conf->{tag} = $opts->{t} if($opts->{t});
 
 }
 

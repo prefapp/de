@@ -7,7 +7,9 @@ Requirements
 ------------
 - docker
 - perl
-- YAML Perl module. For example: ```sudo apt-get install libyaml-perl```
+- YAML Perl module.   
+For debian/ubuntu:  
+```sudo apt-get install libyaml-perl```
 
 
 To get started
@@ -19,18 +21,23 @@ sudo curl https://raw.githubusercontent.com/prefapp/de/master/de -o /usr/local/s
 sudo chmod 755 /usr/local/sbin/de
 ```
 
-- Create a container associated to your project
+- Configure your project preferences in a yaml file (.de) inside your project home
+For example:
 
-In a ruby project, for example , from de root of your project run:
+```yaml
+image: myrailsapp
+env:
+  RAILS_ENV: production
+links:
+  - mysql:mysql
+ports:
+  - 80
 
 ```
-spock@enterprise:~/proxectos/panel-v2$ de -a start -i ruby:2.2 -p 80 
-Creating container panel-v2_26...5bb262b9a995ab87ab7e254b138152c0a22ea40dba355ccc29294c8b3b4af84f
-```
 
-- Have fun!
+Have fun!
 
-For example run the test inside your container __from outside__
+For example, if you have a rails application, run the test inside your container __from outside__
 
 ```
 spock@enterprise:~/proxectos/panel-v2$ de rake test
@@ -47,7 +54,7 @@ Finished in 3.275538s, 10.6853 runs/s, 13.1276 assertions/s.
 
 - If you want run commands as root user inside container (very useful in some situations)
 ```
-spock@enterprise:~/proxectos/panel-v2$ de -R bundle
+spock@enterprise:~/proxectos/panel-v2$ de -C -R  bundle install
 Don't run Bundler as root. Bundler can ask for sudo if it is needed, and installing your bundle as root will break this application for all non-root users on this machine.
 Fetching gem metadata from https://rubygems.org/.........
 Fetching version metadata from https://rubygems.org/...
@@ -81,31 +88,20 @@ Installing arel 6.0.3
 Installing activerecord 4.2.4
 ....
 ```
+-**-C** is set to specify that we want **commit** container changes into image
 
-- Remove your dev container:
-```
-spock@enterprise:~/proxectos/panel-v2$ de -a rm 
-Removing container ...panel-v2_26
-
-```
 
 The config file
 -----------------
 
 .de is a yaml config file, generated in the root of your project. 
 
-Let *de* create it for your with **de start**
-
 ```yaml
-project: project name
-image: docker image name needed by your project
-container: container name associated, if not exists 'de' can create it
-project_volume: volume path to the source code project, inside the container, by default '/home/my_project'
-container_username: user in container to manipulate your project
-container_group: container user group
-homedir: container homedir
-user_id: user_id of the container_user (by default your host user_id)
-group_id: group_id of the container_group (by default your host group_id)
+image: docker image needed by your project
+working_dir: volume path to the project source code, inside the container, by default '/home/<my_project_name>'
 ports: [list of ports to connect your container]
+volumes: [list of volumes to connect to your container]
+links: [ array of external containers to to link to ]
+env: Hash of environment variables needed to configure your application
 ```
 

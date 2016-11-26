@@ -52,7 +52,7 @@ Finished in 3.275538s, 10.6853 runs/s, 13.1276 assertions/s.
 
 ```
 
-- If you want run commands as root user inside container (by default **de** runs the commands with the same uid your user), use '**-R**' flag:   
+- If you want run commands as root user inside container use '**-R**' flag (by default **de** runs the commands with the same uid as your user)    
 ```
 spock@enterprise:~/proxectos/panel-v2$ de -C -R  bundle install
 Don't run Bundler as root. Bundler can ask for sudo if it is needed, and installing your bundle as root will break this application for all non-root users on this machine.

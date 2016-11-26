@@ -31,22 +31,18 @@ my $DEFAULT_PROJECT_NAME = pop @current_path;
 my $REAL_GROUP_ID = (split(' ', $())[0];
 
 my $CONFIG = {
-    project => $DEFAULT_PROJECT_NAME,
     container => undef,
     image => undef,
     
-    project_volume => File::Spec->join(
+    working_dir => File::Spec->join(
         File::Spec->rootdir,
         'home',
-        scalar(getpwuid($<)),
         $DEFAULT_PROJECT_NAME
     ),
     ports => [],
     volumes => [],
     links => [],
     action => 'exec',
-    #container_username => scalar(getpwuid($<)),
-    #container_group => scalar(getgrgid($REAL_GROUP_ID)),
     
     homedir => File::Spec->join(
     
@@ -64,11 +60,6 @@ my $CONFIG = {
 &read_config;
 &load_command_line_args;
 
-#if($CONFIG->{action} eq 'start'){
-#    $CONFIG->{container} ||= $CONFIG->{project}.'_'.int(rand(100));
-#    &create_container;
-#    &save_config;
-#}
 if($CONFIG->{action} eq 'exec'){
 
     my $sh_cmd = &build_command(@ARGV);
@@ -132,34 +123,9 @@ sub build_command {
 
     my $cmd = join (' ', @args);
 
-    my $current_path = File::Spec->join(
-    
-        $CONFIG->{project_volume}, 
-    
-        &current_path_relative_to_project_root()
-    );
-
     return [@args];
 
 
-    #if($CONFIG->{root}){
-    #
-    #    [
-    #        'sh', 
-    #        '-c', 
-    #        "cd $current_path && $cmd"
-    #    ];
-
-    #}
-    #else{
-
-    #    [
-    #        'su', 
-    #        '-c', 
-    #        "cd $current_path && ".&build_env.$cmd, 
-    #        $CONFIG->{container_username}
-    #    ];
-    #}
 }
 
 sub build_env {
@@ -186,20 +152,6 @@ sub build_env {
     
 }
 
-#sub execute_command {
-#    my (@sh_cmd) = @_;
-#
-#    die("container not specified") unless($CONFIG->{container});
-#
-#    run_cmd("docker start $CONFIG->{container}");# > /dev/null");
-#    
-#    my @docker_command = ("docker exec -ti $CONFIG->{container}", @sh_cmd);
-#    
-#    print "Executing ".join(' ', @docker_command)." ...\n";
-#
-#    run_cmd(@docker_command);
-#
-#}
 
 sub execute_command{
     my (@sh_cmd) = @_;
@@ -234,8 +186,8 @@ sub execute_command{
         push @command, ('-u', "$<:$REAL_GROUP_ID");
     }
 
-    push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{project_volume});
-    push @command, ('-w', $CONFIG->{project_volume});
+    push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{working_dir});
+    push @command, ('-w', $CONFIG->{working_dir});
 
 
     # volumes extra
@@ -346,12 +298,11 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:p:v:a:RCST:t", $opts);
+    getopts("i:c:w:a:RCST:t", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
-    $conf->{project_volume} = $opts->{v} if($opts->{v});
-    $conf->{project} = $opts->{p} if($opts->{p});
+    $conf->{working_dir} = $opts->{w} if($opts->{w});
     $conf->{action} = $opts->{a} if($opts->{a});
     $conf->{root} = 1 if($opts->{R});
 

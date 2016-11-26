@@ -10,7 +10,7 @@ use Data::Dumper;
 use File::Spec;
 use File::Basename;
 
-our $VERSION=2.0.1;
+our $VERSION=2.1.1;
 
 my $CONFIG_FILE = '.de';
 

@@ -52,7 +52,7 @@ Finished in 3.275538s, 10.6853 runs/s, 13.1276 assertions/s.
 
 ```
 
-- If you want run commands as root user inside container (very useful in some situations), use '**-R**' flag:   
+- If you want run commands as root user inside container (by default **de** runs the commands with the same uid your user), use '**-R**' flag:   
 ```
 spock@enterprise:~/proxectos/panel-v2$ de -C -R  bundle install
 Don't run Bundler as root. Bundler can ask for sudo if it is needed, and installing your bundle as root will break this application for all non-root users on this machine.
@@ -88,7 +88,7 @@ Installing arel 6.0.3
 Installing activerecord 4.2.4
 ....
 ```
-(**-C** is set to specify that we want **commit** container changes into the image, and also you can indicate that commit it in a new tag with **-T <new_tag_name>**)
+**-C** is set to specify that we want **commit** container changes into the image, and also you can indicate that commit it in a new tag with **-T new_tag_name**
 
 
 The config file

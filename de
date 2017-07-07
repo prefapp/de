@@ -204,10 +204,11 @@ sub execute_command{
 
         #
         # Pero para poder montar los containers con named_volumes 
-        # si la ruta empieza por : (de label) no se hace más que seguir la label
+        # si la ruta empieza por @ (de label) no se hace más que seguir la label
         #
-        if($part[0] =~ /^\:(.+)\:$/){
+        if($part[0] =~ /^\@([^:]+)/){
             push @command, ('-v', $1.':'.$part[1]);
+            next;
         }
         else{
             if($part[0] =~ qr!^$root!x ){
@@ -239,6 +240,8 @@ sub execute_command{
     }
 
     push @command, ($CONFIG->{image}, @sh_cmd);
+
+    print Dumper(\@command);
 
     run_cmd(@command);
 

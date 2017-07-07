@@ -241,8 +241,6 @@ sub execute_command{
 
     push @command, ($CONFIG->{image}, @sh_cmd);
 
-    print Dumper(\@command);
-
     run_cmd(@command);
 
     if($CONFIG->{commit}){

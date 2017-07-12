@@ -21,7 +21,7 @@ sudo curl https://raw.githubusercontent.com/prefapp/de/master/de -o /usr/local/s
 sudo chmod 755 /usr/local/sbin/de
 ```
 
-- Configure your project preferences in a yaml file (.de) inside your project home
+- Configure the docker options needed by your project, in a yaml file (**.de**) inside your project home   
 For example:
 
 ```yaml
@@ -35,9 +35,9 @@ ports:
 
 ```
 
-Have fun!
+Now any command that you want to run **inside** the context of your application, just prepend it with **de**.
 
-For example, if you have a rails application, run the test inside your container __from outside__
+For example, if you have a rails application, you can run the tests inside a docker created specifically for it, __from outside__
 
 ```
 spock@enterprise:~/proxectos/panel-v2$ de rake test
@@ -52,7 +52,7 @@ Finished in 3.275538s, 10.6853 runs/s, 13.1276 assertions/s.
 
 ```
 
-- If you want run commands as root user inside container (very useful in some situations)
+- If you want run commands as root user inside container use '**-R**' flag (by default **de** runs the commands with the same uid as your user)    
 ```
 spock@enterprise:~/proxectos/panel-v2$ de -C -R  bundle install
 Don't run Bundler as root. Bundler can ask for sudo if it is needed, and installing your bundle as root will break this application for all non-root users on this machine.
@@ -88,7 +88,7 @@ Installing arel 6.0.3
 Installing activerecord 4.2.4
 ....
 ```
--**-C** is set to specify that we want **commit** container changes into image
+**-C** is set to specify that we want **commit** container changes into the image, and also you can indicate that commit it in a new tag with **-T new_tag_name**
 
 
 The config file

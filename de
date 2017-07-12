@@ -210,11 +210,21 @@ sub execute_command{
         # si es relativa, hai que calcular la absoluta
         my $root = File::Spec->rootdir();
 
-        if($part[0] =~ qr!^$root!x ){
-            $local_path = $part[0]
+        #
+        # Pero para poder montar los containers con named_volumes 
+        # si la ruta empieza por @ (de label) no se hace más que seguir la label
+        #
+        if($part[0] =~ /^\@([^:]+)/){
+            push @command, ('-v', $1.':'.$part[1]);
+            next;
         }
         else{
-            $local_path = File::Spec->rel2abs(&abs_root_path.'/'.$part[0]);
+            if($part[0] =~ qr!^$root!x ){
+                $local_path = $part[0]
+            }
+            else{
+                $local_path = File::Spec->rel2abs(&abs_root_path.'/'.$part[0]);
+            }
         }
 
         push @command, ('-v', $local_path.':'.$part[1]);

@@ -235,9 +235,11 @@ sub execute_command{
         push @command, ('--link', $link);
     }
     
-    # ports 
-    foreach my $port (@{$CONFIG->{ports}}){ 
-        push @command, ("-p", $port);
+    # ports
+    if($CONFIG->{connect_ports}){
+        foreach my $port (@{$CONFIG->{ports}}){ 
+            push @command, ("-p", $port);
+        }
     }
 
     push @command, ($CONFIG->{image}, @sh_cmd);
@@ -315,7 +317,7 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:w:a:dRCST:t", $opts);
+    getopts("i:c:w:a:dRCUST:t", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
@@ -327,6 +329,7 @@ sub load_command_line_args{
     $conf->{commit} =  $opts->{C} || $opts->{S};
     $conf->{tag} = $opts->{T} if($opts->{T});
     $conf->{tty} = $opts->{t} if($opts->{t});
+    $conf->{connect_ports} = !($opts->{U});
 
 }
 
@@ -341,6 +344,7 @@ sub HELP_MESSAGE {
         "  -R: root mode, run as root\n",
         "  -d: debug, print docker command executed\n",
         "  -t: tty allocate, to get echo in terminal\n",
+        "  -U: avoid connect ports to container to avoid colision with another family container in execution (only command line)\n",
 
         "  -C,-S: commit after container exit. It will use -T tag, or image name if not tag is specified\n",
         "  -T: tag to commit to, if commit flag is set\n",

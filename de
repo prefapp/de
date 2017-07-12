@@ -119,7 +119,12 @@ sub abs_root_path {
 sub build_command {
     my @args = @_;
 
-    die("Falta comando a ejecutar en container") unless(@args);
+    unless(@args){
+        
+        HELP_MESSAGE();
+
+        die("Command (to run in container) missing");
+    }
 
     my $cmd = join (' ', @args);
 
@@ -197,6 +202,9 @@ sub execute_command{
 
         my $local_path;
 
+        # sustituimos variables de entorno, si existen
+        $part[0] = &interpolate_env_vars($part[0]);
+
 
         # miramos si es ruta relativa o absoluta
         # si es relativa, hai que calcular la absoluta
@@ -216,6 +224,9 @@ sub execute_command{
     # env vars definied en config
     my $env = &build_env;
     while(my ($k,$v) = each(%$env)){
+
+        $v = &interpolate_env_vars($v);
+
         push @command, ('-e', "$k=$v");
     }
 
@@ -237,6 +248,12 @@ sub execute_command{
         my $tag = $CONFIG->{tag} || 'latest';
         commit_container($container_name, $CONFIG->{image}.":$tag")
     }
+}
+
+sub interpolate_env_vars{
+    
+    $_[0] =~ s/\$(\w+)/$ENV{$1}/g;
+    $_[0];
 }
 
 
@@ -298,13 +315,14 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:w:a:RCST:t", $opts);
+    getopts("i:c:w:a:dRCST:t", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
     $conf->{working_dir} = $opts->{w} if($opts->{w});
     $conf->{action} = $opts->{a} if($opts->{a});
     $conf->{root} = 1 if($opts->{R});
+    $conf->{debug} = 1 if($opts->{d});
 
     $conf->{commit} =  $opts->{C} || $opts->{S};
     $conf->{tag} = $opts->{T} if($opts->{T});
@@ -312,10 +330,27 @@ sub load_command_line_args{
 
 }
 
+sub HELP_MESSAGE {
+    print "Run commands related to a code project, inside an associated docker container, from outside\n\n";
+    print "Usage: $0 <args> <command>\n\n";
+    print 
+        "VALID ARGS:\n",
+        "  -c <container_name>: Launch container with name specified, by default random name is used \n", 
+        "  -i <image_name>: Use image to run container \n",
+        "  -w <dir>: working dir, default to '.'\n",
+        "  -R: root mode, run as root\n",
+        "  -d: debug, print docker command executed\n",
+        "  -t: tty allocate, to get echo in terminal\n",
+
+        "  -C,-S: commit after container exit. It will use -T tag, or image name if not tag is specified\n",
+        "  -T: tag to commit to, if commit flag is set\n",
+        "\n\n";
+}
+
 sub run_cmd{
     my ($cmd,@rest) = @_;
 
-    #print join(' ', $cmd, @rest, "\n");
+    print join(' ', $cmd, @rest, "\n") if($CONFIG->{debug});
 
     system(&split_command($cmd), @rest);
 }

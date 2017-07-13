@@ -205,6 +205,7 @@ sub execute_command{
         # sustituimos variables de entorno, si existen
         $part[0] = &interpolate_env_vars($part[0]);
 
+        my $access_control = ($part[2])? ':'.$part[2] : '';
 
         # miramos si es ruta relativa o absoluta
         # si es relativa, hai que calcular la absoluta
@@ -215,7 +216,8 @@ sub execute_command{
         # si la ruta empieza por @ (de label) no se hace más que seguir la label
         #
         if($part[0] =~ /^\@([^:]+)/){
-            push @command, ('-v', $1.':'.$part[1]);
+            push @command, ('-v', $1.':'.$part[1].$access_control);
+            
             next;
         }
         else{
@@ -227,7 +229,7 @@ sub execute_command{
             }
         }
 
-        push @command, ('-v', $local_path.':'.$part[1]);
+        push @command, ('-v', $local_path.':'.$part[1].$access_control);
         
     }
 

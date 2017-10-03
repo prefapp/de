@@ -56,6 +56,7 @@ my $CONFIG = {
     group_id => $REAL_GROUP_ID,
 
     env => [],
+    sysctl => [],
 };
 &read_config;
 &load_command_line_args;
@@ -252,6 +253,11 @@ sub execute_command{
         foreach my $port (@{$CONFIG->{ports}}){ 
             push @command, ("-p", $port);
         }
+    }
+
+    # sysctl
+    foreach my $opt (@{$CONFIG->{sysctl}}){
+        push @command, ('--sysctl', $opt);
     }
 
     push @command, ($CONFIG->{image}, @sh_cmd);

@@ -57,6 +57,7 @@ my $CONFIG = {
 
     env => [],
     sysctl => [],
+    entrypoint => undef,
 };
 &read_config;
 &load_command_line_args;
@@ -260,6 +261,11 @@ sub execute_command{
         push @command, ('--sysctl', $opt);
     }
 
+    # entrypoint 
+    if($CONFIG->{entrypoint}){
+        push @command, ("--entrypoint" , $CONFIG->{entrypoint});
+    }
+
     push @command, ($CONFIG->{image}, @sh_cmd);
 
     run_cmd(@command);
@@ -335,7 +341,7 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:w:a:dRCUST:t", $opts);
+    getopts("i:c:w:a:e:dRCUST:t", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
@@ -348,6 +354,7 @@ sub load_command_line_args{
     $conf->{tag} = $opts->{T} if($opts->{T});
     $conf->{tty} = $opts->{t} if($opts->{t});
     $conf->{connect_ports} = !($opts->{U});
+    $conf->{entrypoint} = $opts->{e} if($opts->{e});
 
 }
 
@@ -359,6 +366,7 @@ sub HELP_MESSAGE {
         "  -c <container_name>: Launch container with name specified, by default random name is used \n", 
         "  -i <image_name>: Use image to run container \n",
         "  -w <dir>: working dir, default to '.'\n",
+        "  -e <entrypoint>: entrypoint, modify image entrypoint\n",
         "  -R: root mode, run as root\n",
         "  -d: debug, print docker command executed\n",
         "  -t: tty allocate, to get echo in terminal\n",

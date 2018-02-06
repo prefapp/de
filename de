@@ -262,7 +262,7 @@ sub execute_command{
     }
 
     # entrypoint 
-    if($CONFIG->{entrypoint}){
+    if(defined($CONFIG->{entrypoint})){
         push @command, ("--entrypoint" , $CONFIG->{entrypoint});
     }
 

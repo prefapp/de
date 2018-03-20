@@ -187,10 +187,14 @@ sub execute_command{
     # equivalente al que lo esta ejecutando fuera
     #
     unless($CONFIG->{root}){
-        push @command, ('-e', 'USER='.$ENV{USER});
-        push @command, ('-e', 'USERID='.$<);
+        #push @command, ('-e', 'USER='.$ENV{USER});
+        #push @command, ('-e', 'USERID='.$<);
 
-        push @command, ('-u', "$<:$REAL_GROUP_ID");
+        #push @command, ('-u', "$<:$REAL_GROUP_ID");
+        push @command, ('-e', 'USER='.getpwuid($CONFIG->{user_id}));
+        push @command, ('-e', 'USERID='.$CONFIG->{user_id});
+
+        push @command, ('-u', $CONFIG->{user_id}.':'.$CONFIG->{group_id});
     }
 
     push @command, ("-v", File::Spec->rel2abs(File::Spec->curdir()).':'.$CONFIG->{working_dir});

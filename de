@@ -282,7 +282,7 @@ sub execute_command{
 
     push @command, ($CONFIG->{image}, @sh_cmd);
 
-    print join " ", @command;
+    #print join " ", @command;
 
     run_cmd(@command);
 

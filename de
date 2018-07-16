@@ -181,7 +181,7 @@ sub execute_command{
     
 
     if($CONFIG->{tty}){
-        push @command, '-ti'
+        push @command, '-t'
     }
     
     if($CONFIG->{commit}){

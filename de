@@ -176,7 +176,7 @@ sub execute_command{
 
     ## si se pasa la opcion -K el comando cambia
     if($CONFIG->{in_kubernetes}){
-        @command = qw(telepresence --docker-run);
+        @command = qw(telepresence --docker-run -ti);
     }
     
 

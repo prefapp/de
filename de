@@ -58,6 +58,8 @@ my $CONFIG = {
     env => [],
     sysctl => [],
     entrypoint => undef,
+
+    in_kubernetes => undef,
 };
 &read_config;
 &load_command_line_args;
@@ -171,8 +173,15 @@ sub execute_command{
     #(https://github.com/docker/docker/issues/8513)
     my @command = qw(docker run -i);
 
+
+    ## si se pasa la opcion -K el comando cambia
+    if($CONFIG->{in_kubernetes}){
+        @command = qw(telepresence --docker-run);
+    }
+    
+
     if($CONFIG->{tty}){
-        push @command, '-t'
+        push @command, '-ti'
     }
     
     if($CONFIG->{commit}){
@@ -181,6 +190,7 @@ sub execute_command{
     else{
        push @command, "--rm";
     }
+
 
     # 
     # seteamos el usuario dentro del container
@@ -272,6 +282,8 @@ sub execute_command{
 
     push @command, ($CONFIG->{image}, @sh_cmd);
 
+    print join " ", @command;
+
     run_cmd(@command);
 
     if($CONFIG->{commit}){
@@ -345,7 +357,7 @@ sub load_command_line_args{
 
     # Mergeamos CONF cas opcions pasadas desde a linea de comandos
     my $opts = {};
-    getopts("i:c:w:a:e:dRCUST:t", $opts);
+    getopts("i:c:w:a:e:dRCUST:t:K", $opts);
 
     $conf->{container} = $opts->{c} if($opts->{c});
     $conf->{image} = $opts->{i} if($opts->{i});
@@ -359,6 +371,8 @@ sub load_command_line_args{
     $conf->{tty} = $opts->{t} if($opts->{t});
     $conf->{connect_ports} = !($opts->{U});
     $conf->{entrypoint} = $opts->{e} if($opts->{e});
+
+    $conf->{in_kubernetes} = 1 if($opts->{K});
 
 }
 
@@ -375,7 +389,7 @@ sub HELP_MESSAGE {
         "  -d: debug, print docker command executed\n",
         "  -t: tty allocate, to get echo in terminal\n",
         "  -U: avoid connect ports to container to avoid colision with another family container in execution (only command line)\n",
-
+        "  -K: run this command in a kubernetes environment (using telepresence)\n",
         "  -C,-S: commit after container exit. It will use -T tag, or image name if not tag is specified\n",
         "  -T: tag to commit to, if commit flag is set\n",
         "\n\n";
